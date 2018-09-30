@@ -54,7 +54,7 @@ namespace ConsoleApp
 
             foreach (var row in rawPharse.CardSubwayStatsNew.row)
             {
-                onOffData.Add(new CardSubwayStatsRow())
+                onOffData.Add(new CardSubwayStatsRow());
             }
         }
     }
