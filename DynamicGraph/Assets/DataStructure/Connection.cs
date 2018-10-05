@@ -13,6 +13,6 @@
         this.a = c.a;
         this.b = c.b;
     }
-    public int strength;
+    public float strength;
     public HumanName a, b;
 }
