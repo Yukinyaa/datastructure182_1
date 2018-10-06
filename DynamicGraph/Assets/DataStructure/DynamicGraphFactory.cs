@@ -45,7 +45,7 @@ public class DynamicGraphFactory
     Dictionary<DateTime, Connections> unitTimeCommsSnapShot = new Dictionary<DateTime, Connections>();
     Dictionary<DateTime, Connections> unitTimeGraphSnapShot = new Dictionary<DateTime, Connections>();
 
-    public Dictionary<DateTime, Connections> GetUnitTimeGraphSnpSot()
+    public Dictionary<DateTime, Connections> GetUnitTimeGraphSnapShot()
     {
         return GraphFinished ? unitTimeCommsSnapShot : null;
     }
@@ -120,7 +120,7 @@ public class DynamicGraphFactory
                         length = name_text[1].Length - 1
                     });
             }
-            else continue;
+            else continue;//TODO: add to last line
 
         }
         { 
@@ -216,7 +216,7 @@ public class DynamicGraphFactory
         DateTime readFrom = default(DateTime);
         DateTime readTo = default(DateTime);
         int allTalkIndex=0;
-        var CurrentConn = new Connections();
+        var conn = new Connections(0f);
         while (true)//accumulate one day
         {
             while (true)//wait for dayTalk insert, if there is no dayTalk to read and wait, exit.
@@ -246,17 +246,16 @@ public class DynamicGraphFactory
                     while (true)
                     {
                         lock (((ICollection)unitTimeCommsSnapShotUpdater).SyncRoot)
-                            if (!unitTimeCommsSnapShotUpdater[readFrom].IsAlive)
+                            if (!unitTimeCommsSnapShotUpdater[readFrom.Date].IsAlive)//catch nullrefrence
                                 break;
                     }
-                    CurrentConn.Add(unitTimeCommsSnapShot[readFrom]);
+                    conn.MultpCustom(unitTimeCommsSnapShot[readFrom]);
 
                     lock (progLock)
                         prog.lv2days++;
                 }
                 catch (KeyNotFoundException) { }
-                CurrentConn.Decay(DataConsts.UnitTime);
-                unitTimeGraphSnapShot.Add(readFrom = readFrom.AddHours(DataConsts.UnitTime), CurrentConn.Copy());
+                unitTimeGraphSnapShot.Add(readFrom = readFrom.AddHours(DataConsts.UnitTime), conn.Copy());
                 prog.lv2days++;
             }
         }

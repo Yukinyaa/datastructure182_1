@@ -12,6 +12,15 @@ public class HumanName
     public int Code { get { return code; } }
     public override string ToString() { return names[code]; }
 
+    static public string GetNameByCode(int i)
+    {
+        try
+        {
+            lock (((ICollection)names).SyncRoot)
+                return names[i];
+        }
+        catch (ArgumentOutOfRangeException) { return "unknown"; }
+    }
     public HumanName(string nameStr)
     {
         lock (((ICollection)names).SyncRoot)

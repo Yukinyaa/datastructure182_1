@@ -16,9 +16,9 @@ namespace ConsoleApp1
             Thread.Sleep(1000);
             while (true)
             {
+                Console.WriteLine(c.Lv0Progression + ", " + c.Lv1Progression + ", " + c.Lv2Progression);
                 if (c.GraphFinished)
                     break;
-                Console.WriteLine(c.Lv0Progression + ", " + c.Lv1Progression + ", " + c.Lv2Progression);
                 Thread.Sleep(100);
             }
             
