@@ -14,11 +14,24 @@ public class DataHandler : MonoBehaviour {
 
 
     public GameObject nodePF;
+    public GameObject canvas;
 
-    public float logScale = 10;//vewing distance logarithm scale
-    public float graphScale = 10;
+    //public float logScale = 10;//vewing distance logarithm scale
+    [Range(10.0f, 50.0f)]
+    public float graphRadius = 100f;
+    [Range(0.1f, 10.0f)]
+    public float distanceScale = 0.1f;
+    [Range(0.1f, 10.0f)]
+    public float PlaybackSpeed = 0.1f;
+
     [Range(0.3f, 10.0f)]
-    public float PlaybackSpeed = 3;
+    public float levelScale = 1f;
+
+    [Range(0.1f, 100f)]
+    public float gravity = 9.8f;
+
+    [Range(0.01f, 1.0f)]
+    public float attractionScale = 0.1f;
 
     // Use this for initialization
     void Start () {
@@ -65,21 +78,26 @@ public class DataHandler : MonoBehaviour {
             { 
                 var obj = Instantiate(nodePF,
                     new Vector3(Random.Range(-1f, 1), Random.Range(-1f, 1), Random.Range(-1f, 1)),
-                    Quaternion.identity
+                    Quaternion.identity,
+                    canvas.transform
                     );
                 var node = obj.GetComponent<Node>();
                 nodes[i] = node;
                 node.no = i;
-                node.name = HumanName.GetNameByCode(i);
+                node.text.text = node.name = HumanName.GetNameByCode(i);
+                
+                if (node.name.Equals(" 회원님 "))
+                    node.thisColorChanger.c = Color.red;
             }
         }
 
         bool updateNodeStarted = false;
-        foreach (var graphSnapShot in dynamicGraph)
+        foreach (var graphSnapShot in c.GetUnitTimeGraphSnapShot())
         {
             status = graphSnapShot.Key.ToString();
             currentGraph = graphSnapShot.Value;
-            
+            currentGraph.ExpandMatrix(maxCount);
+
             if (updateNodeStarted == false)
                 StartCoroutine(UpdateNode());
             updateNodeStarted = true;
@@ -90,16 +108,20 @@ public class DataHandler : MonoBehaviour {
     {
         while (true)
         {
-            currentGraph.ExpandMatrix(maxCount);
             for (int i = 0; i < maxCount; i++)
             {
                 nodes[i].velocity *= 0.80f;
                 nodes[i].velocity += nodes[i].desiredVelocity * 0.05f;
-                nodes[i].transform.position += nodes[i].velocity * Time.deltaTime;
-                nodes[i].desiredVelocity = Vector3.zero;
+                nodes[i].transform.position += nodes[i].velocity * attractionScale * Time.deltaTime;
                 
+
+                
+                nodes[i].desiredVelocity = Vector3.zero;
+                    nodes[i].desiredVelocity -= nodes[i].transform.position.normalized * (nodes[i].transform.position.magnitude - (graphRadius /  Mathf.Sqrt(nodes[i].level)) ) * gravity;//gravity
+                nodes[i].level = 1;
             }
-            
+
+            //bool[] isIsolated = new bool[maxCount];
             for (int i = 0; i < maxCount; i++)
             {
                 for (int j = 0; j < i; j++)
@@ -109,22 +131,27 @@ public class DataHandler : MonoBehaviour {
                     {
                         vertexVector = new Vector3(Random.Range(-1f, 1), Random.Range(-1f, 1), Random.Range(-1f, 1));
                     }
-                    //Debug.Log(Mathf.Log(currentGraph.Matrix[i, j], logScale));
-                    var desired = (1000/i) * graphScale;// 1000 ^ (log_logScale_x)
+                    //if (currentGraph.Matrix[i, j] < 1)// if no connection > no force
+                    //    continue;
+                    var desiredDistance = 100 / (currentGraph.Matrix[i, j] + 1) * distanceScale;// 1000 ^ (log_logScale_x)
+                    
                     //Debug.Log(desired);
-                    if (float.IsInfinity(desired) || float.IsNaN(desired))
-                        desired = 1000;
-                    var real = vertexVector.magnitude;
-                    var pullStrength = real- desired;
-                    if (pullStrength < 0)
-                    {
-                        //pullStrength /= 10;
-                        pullStrength *= -pullStrength;
-                    }
+                    if (float.IsInfinity(desiredDistance) || float.IsNaN(desiredDistance))
+                        continue;
+                    var nowDistance = vertexVector.magnitude;
+                    var pullStrength = nowDistance- desiredDistance;
+
+                    if (pullStrength < 0)//강하게 밀기
+                        pullStrength *= 3;
+                    else
+                        pullStrength *= 1;
                     
                     nodes[i].desiredVelocity += vertexVector.normalized * pullStrength;
                     nodes[j].desiredVelocity -= vertexVector.normalized * pullStrength;
-                    
+                    nodes[i].level += currentGraph.Matrix[i, j] / levelScale;
+                    nodes[j].level += currentGraph.Matrix[i, j] / levelScale;
+
+
                 }
             }
             yield return null;

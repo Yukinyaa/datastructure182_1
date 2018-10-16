@@ -92,10 +92,10 @@ public class Connections
     public void Decay(int durationh)
     {
         for (int i = 0; i < MatrixSize; i++)
-            for (int j = 0; j < MatrixSize; j++)
+            for (int j = 0; j < i; j++)
             {
                 if (Matrix[i, j] != 0)
-                    Matrix[i, j] = (int)Mathf.Pow(Matrix[i, j], -Mathf.Pow(2, (float)durationh / DataConsts.DecayRate));
+                    Matrix[i, j] = Matrix[i, j] * Mathf.Pow(2 ,-(float)durationh / DataConsts.DecayHalfLife); //(int)Mathf.Pow(Matrix[i, j], -Mathf.Pow(2, (float)durationh / DataConsts.DecayRate));
                 if (Matrix[i, j] < 0)
                     Matrix[i, j] = 0;
             }
@@ -105,12 +105,48 @@ public class Connections
 
     public float GetConnectionBetween(HumanName a, HumanName b)
     {
+        if(a.code >= MatrixSize || b.code >= MatrixSize)
+            return 0;
         if (a.code < b.code) //always a>=b
         {
-            int temp = a.code;
-            a.code = b.code;
-            b.code = temp;
+            var temp = a;
+            a = b;
+            b = temp;
         }
-        return Matrix[a.code,b.code];
+        return Matrix[a.code, b.code];
+    }
+
+    public float GetConnectionBetween(int a, int b)
+    {
+        if (a >= MatrixSize || b >= MatrixSize)
+            return 0;
+            if (a < b) //always a>=b
+            {
+                int temp = a;
+                a = b;
+                b = temp;
+            }
+            return Matrix[a, b];
+
+    }
+
+
+    public float GetScore(int a)
+    {
+        float score = 0;
+        for (int i = 0; i < MatrixSize; i++)
+            for (int j = 0; j < i; j++)
+                if (i == a || j == a)
+                    score += Matrix[i, j];//hack
+        return score;
+    }
+    public float GetScore(HumanName a)
+    {
+        float score = 0;
+        for (int i = 0; i < MatrixSize; i++)
+            for (int j = 0; j < i; j++)
+                if (i == a.code || j == a.code)
+                    score += Matrix[i, j];//hack
+        return score;
     }
 }

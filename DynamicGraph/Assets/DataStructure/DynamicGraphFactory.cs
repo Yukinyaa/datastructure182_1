@@ -47,6 +47,12 @@ public class DynamicGraphFactory
 
     public Dictionary<DateTime, Connections> GetUnitTimeGraphSnapShot()
     {
+        return GraphFinished ? unitTimeGraphSnapShot : null;
+    }
+
+
+    public Dictionary<DateTime, Connections> GetUnitTimeCommsSnapShot()
+    {
         return GraphFinished ? unitTimeCommsSnapShot : null;
     }
 
@@ -101,7 +107,7 @@ public class DynamicGraphFactory
                 readingDate = DateTime.Parse(line, MyCultureInfo).Date;
                 lock(progLock)
                     prog.daysFoundFromFile++;
-            }
+            }//Day Start
             else if (Regex.Match(line, "[0-9]{4}년 [0-9]{1,2}월 [0-9]{1,2}일 오[전+후] [0-9]{1,2}:[0-9]{1,2}, .* : .*").Success)
             {
                 var dt_text = line.Split(",".ToArray(), 2);
@@ -119,7 +125,7 @@ public class DynamicGraphFactory
                         name = new HumanName(name_text[0]),
                         length = name_text[1].Length - 1
                     });
-            }
+            }//Chat
             else continue;//TODO: add to last line
 
         }
@@ -157,17 +163,15 @@ public class DynamicGraphFactory
         //initalize TalkBank
         lock (((ICollection)allTalks).SyncRoot)
         {
-            if (allTalks.First().Key != readingTimeSpan)
-            {
-                var lastDayKeyValuePair = allTalks.FirstOrDefault(e => e.Key == readingTimeSpan.AddDays(-1));
+            var lastDayKeyValuePair = allTalks.FirstOrDefault(e => e.Key == readingTimeSpan.AddDays(-1));
+            if(lastDayKeyValuePair.Value != null)
                 talkBank.prevDayChat = new List<SingleChat>(lastDayKeyValuePair.Value);
-            }
             talkBank.todayChat = new List<SingleChat>(allTalks[readingTimeSpan]);
         }
 
         Connections currentConn = new Connections();
         
-        for (int i = 0; i < talkBank.todayChat.Count; i++)
+        for (int i = 0; i < talkBank.todayChat.Count; i++)//for each chat in today
         {
             var thisChat = talkBank.GetChat(i);
             DateTime scanChatTime;
@@ -184,11 +188,13 @@ public class DynamicGraphFactory
                 readingTimeSpan = readingTimeSpan.AddHours(DataConsts.UnitTime);
             }
 
-            do
+            do//scan evey chat in n time
             {
                 scanChat = talkBank.GetChat(i, scanOffset);
                 if (scanChat == null) break;
-                int tstrength = (int)(100 / ((thisChat.time - scanChat.time).TotalMinutes + scanOffset));
+                float tstrength = (float)(10 / ((thisChat.time - scanChat.time).TotalMinutes + scanOffset));
+                if (tstrength <= 1)
+                    break;
                 if (thisChat.name != scanChat.name)
                     currentConn.Add(new Connection()
                     {
@@ -197,11 +203,12 @@ public class DynamicGraphFactory
                         strength = tstrength
                     });
                 scanOffset++;
-                if (tstrength <= 1)
-                    break;
             } while(true);
 
         }
+        for (int i = 0; i < currentConn.MatrixSize; i++)
+            for (int j = 0; j < i; j++)
+                currentConn.Matrix[i, j] = UnityEngine.Mathf.Sqrt(currentConn.Matrix[i, j]);
         lock (((ICollection)unitTimeCommsSnapShot).SyncRoot)
         {
             unitTimeCommsSnapShot.Add(readingTimeSpan, currentConn);
@@ -216,7 +223,7 @@ public class DynamicGraphFactory
         DateTime readFrom = default(DateTime);
         DateTime readTo = default(DateTime);
         int allTalkIndex=0;
-        var conn = new Connections(0f);
+        var conn = new Connections();
         while (true)//accumulate one day
         {
             while (true)//wait for dayTalk insert, if there is no dayTalk to read and wait, exit.
@@ -249,15 +256,17 @@ public class DynamicGraphFactory
                             if (!unitTimeCommsSnapShotUpdater[readFrom.Date].IsAlive)//catch nullrefrence
                                 break;
                     }
-                    conn.MultpCustom(unitTimeCommsSnapShot[readFrom]);
+                    conn.Add(unitTimeCommsSnapShot[readFrom]);
 
                     lock (progLock)
                         prog.lv2days++;
                 }
                 catch (KeyNotFoundException) { }
+                conn.Decay(DataConsts.UnitTime);
                 unitTimeGraphSnapShot.Add(readFrom = readFrom.AddHours(DataConsts.UnitTime), conn.Copy());
                 prog.lv2days++;
             }
+
         }
         
     }
