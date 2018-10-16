@@ -2,14 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEditor;
+//using UnityEditor;
 
 public class DataHandler : MonoBehaviour {
 
     //public static string dirstr = "/storage/emulated/0/KakaoTalk/Chats/*.txt";
     //public static string dirstr = @"C:\Users\woong\Desktop\팩린이뉴들박 33 님과 카카오톡 대화.txt";
     //public static string dirstr = @"C:\Users\woong\Desktop\킹스레이드 스타더스트 길드 31 님과 카카오톡 대화.txt";
-    public static string dirstr = @"C:\Users\woong\Desktop\KakaoTalkChats[1].txt";
+    public static string dirstr = @"talk.txt";
     //팩린이뉴들박 33 님과 카카오톡 대화.txtKakaoTalkChats[1].txt
 
 
